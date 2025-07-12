@@ -86,6 +86,7 @@ class Order(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     txnid = models.CharField(max_length=50, unique=True, blank=True, null=True)  # ✅ Add this field
     status = models.CharField(max_length=20, choices=[('Pending', 'Pending'), ('Paid', 'Paid')], default='Pending')
+    razorpay_order_id = models.CharField(max_length=100, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -93,6 +94,7 @@ class Order(models.Model):
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    number = models.CharField(max_length=100)
     name = models.CharField(max_length=255)
     size = models.CharField(max_length=20, null=True, blank=True)
     color = models.CharField(max_length=50, null=True, blank=True)

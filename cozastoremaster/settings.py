@@ -131,8 +131,5 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-PAYU_MERCHANT_KEY = "gtKFFx"  # PayU Test Merchant Key  
-PAYU_SALT = "4R38IvwiV57FwVpsgOvTXBdLE4tHUXFW"  # PayU Test Salt Key  
-# PAYU_TEST_URL = "https://sandboxsecure.payu.in/_payment"  # PayU Test Payment URL
-PAYU_TEST_URL = "https://test.payu.in/_payment"
+
 

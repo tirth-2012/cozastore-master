@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 {% block body %}
-    <h2 class="m-t-100 m-l-100">Payment Successful!</h2>
-    <p class="m-b-100 m-l-100">Thank you for purchase.....</p>
+    <h2 style="margin-top: 80px;">Order #{{ order.id }} Successful</h2>
+
+<ul>
+  {% for item in items %}
+    <li>{{ item.name }} ({{ item.quantity }}) - ₹{{ item.price }}</li>
+  {% endfor %}
+</ul>
 {% endblock body %}

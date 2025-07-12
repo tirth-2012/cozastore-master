@@ -1,6 +1,6 @@
 from django.shortcuts import render,redirect,get_object_or_404
 from .models import Product,Category,Blog,Comment,Contact,Email,Order,OrderItem,Rating,Cartitem
-from django.http import JsonResponse
+from django.http import JsonResponse,HttpResponse
 from django.db.models import Q
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate,login,logout
@@ -10,13 +10,12 @@ from decimal import Decimal
 from django.contrib.auth.decorators import login_required
 import uuid
 from django.conf import settings
-import requests
 import razorpay
 from django.views.decorators.csrf import csrf_exempt
 
 
-RAZORPAY_KEY_ID = "rzp_test_1xCzvUttxPfa2F"
-RAZORPAY_KEY_SECRET = "61fKckOJxNoRx765d0UL8W6D"
+# RAZORPAY_KEY_ID = "rzp_test_1xCzvUttxPfa2F"
+# RAZORPAY_KEY_SECRET = "61fKckOJxNoRx765d0UL8W6D"
 
 # Create your views here.
 
@@ -576,7 +575,6 @@ def blogdetail(request,pk):
         })
 
     return render(request, 'blogdetail.html', {
-        'page_obj': page_obj,
         'cat': cat,
         'cart_items': cart_items,
         'cart_count': len(cart),
@@ -605,85 +603,8 @@ def update_cart(request, cart_key, action):
     request.session.modified = True
 
     return redirect('shopingcart')
-    
-# def checkout(request):
-#     # Retrieve cart from session
-#     session_cart = request.session.get('cart', {})
-    
-#     # Prepare cart items and calculate total price
-#     cart_items = []
-#     total_price = Decimal('0.00')
-    
-#     for cart_key, item in session_cart.items():
-#         try:
-#             price = Decimal(str(item.get('price', 0)))
-#             quantity = int(item.get('quantity', 0))
-#         except (ValueError, TypeError):
-#             price = Decimal('0.00')
-#             quantity = 0
-
-#         item_total = price * quantity
-#         total_price += item_total
-
-#         cart_items.append({
-#             'cart_key': cart_key,
-#             'name': item.get('name', 'Unknown Product'),
-#             'price': price,
-#             'image1': item.get('image', 'default_image.jpg'),
-#             'quantity': quantity,
-#             'total': item_total,
-#             'size': item.get('size', ''),
-#             'color': item.get('color', ''),
-#         })
-
-#     if request.method == "POST":
-#         full_name = request.POST.get("full_name")
-#         email = request.POST.get("email")
-#         phone_number = request.POST.get("phone_number")
-#         house_society_name = request.POST.get("house_society_name")
-#         landmark_area = request.POST.get("landmark_area")
-#         city = request.POST.get("city")
-#         state = request.POST.get("state")
-#         pin_code = request.POST.get("pin_code")
         
-#         if not cart_items:
-#             messages.error(request, "Your cart is empty.")
-#             return redirect("checkout")
-        
-#         # Create Order
-#         order = Order.objects.create(
-#             user=request.user,
-#             full_name=full_name,
-#             email=email,
-#             phone_number=phone_number,
-#             house_society_name=house_society_name,
-#             landmark_area=landmark_area,
-#             city=city,
-#             state=state,
-#             pin_code=pin_code,
-#             total_price=total_price,
-#         )
-        
-#         # Move cart items to OrderItem
-#         for item in cart_items:
-#             OrderItem.objects.create(
-#                 order=order,
-#                 name=item['name'],
-#                 size=item['size'],
-#                 color=item['color'],
-#                 quantity=item['quantity'],
-#                 price=item['price'],
-#             ) 
-#     # Fetch categories
-#     cat = Category.objects.only("id", "name")
-    
-#     return render(request, 'checkout.html', {
-#         'cat': cat,
-#         'cart_items': cart_items,
-#         'cart_count': len(cart_items),
-#         'total_price': total_price,
-#     })
-    
+
 @login_required(login_url='user_login')
 def checkout(request):
     # Retrieve cart from session
@@ -693,242 +614,6 @@ def checkout(request):
     cart_items = []
     total_price = Decimal('0.00')
 
-    for cart_key, item in session_cart.items():
-        try:
-            price = Decimal(str(item.get('price', 0)))
-            quantity = int(item.get('quantity', 0))
-        except (ValueError, TypeError):
-            price = Decimal('0.00')
-            quantity = 0
-
-        item_total = price * quantity
-        total_price += item_total
-
-        name = item.get('name', 'Unknown Product')
-        image1 = item.get('image', 'default_image.jpg')
-        size = item.get('size', '')
-        color = item.get('color', '')
-
-        # Append to cart_items list for template rendering
-        cart_items.append({
-            'cart_key': cart_key,
-            'name': name,
-            'price': price,
-            'image1': image1,
-            'quantity': quantity,
-            'total': item_total,
-            'size': size,
-            'color': color,
-        })
-
-    if request.method == "POST":
-        full_name = request.POST.get("full_name")
-        email = request.POST.get("email")
-        phone_number = request.POST.get("phone_number")
-        house_society_name = request.POST.get("house_society_name")
-        landmark_area = request.POST.get("landmark_area")
-        city = request.POST.get("city")
-        state = request.POST.get("state")
-        pin_code = request.POST.get("pin_code")
-
-        if not cart_items:
-            messages.error(request, "Your cart is empty.")
-            return redirect("checkout")
-
-        # Create Order
-        order = Order.objects.create(
-            user=request.user,
-            full_name=full_name,
-            email=email,
-            phone_number=phone_number,
-            house_society_name=house_society_name,
-            landmark_area=landmark_area,
-            city=city,
-            state=state,
-            pin_code=pin_code,
-            total_price=total_price,
-        )
-
-        # order = Order.objects.create(user=request.user, total_price=total_price)
-        # Move cart items to OrderItem
-        for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                name=item["name"],
-                size=item["size"],
-                color=item["color"],
-                quantity=item["quantity"],
-                price=item["price"],
-            )
-
-        messages.success(request, "Order placed successfully!")
-        return redirect("payment")
-    
-    
-
-    # Fetch categories
-    cat = Category.objects.only("id", "name")
-
-    return render(request, 'checkout.html', {
-        'cat': cat,
-        'cart_items': cart_items,
-        'cart_count': len(cart_items),
-        'total_price': total_price,
-    })
-# def checkout(request):
-#     # Retrieve cart from session
-#     session_cart = request.session.get('cart', {})
-
-#     # Prepare cart items and calculate total price
-#     cart_items = []
-#     total_price = Decimal('0.00')
-
-#     for cart_key, item in session_cart.items():
-#         try:
-#             price = Decimal(str(item.get('price', 0)))
-#             quantity = int(item.get('quantity', 0))
-#         except (ValueError, TypeError):
-#             price = Decimal('0.00')
-#             quantity = 0
-
-#         item_total = price * quantity
-#         total_price += item_total
-
-#         cart_items.append({
-#             'cart_key': cart_key,
-#             'name': item.get('name', 'Unknown Product'),
-#             'price': price,
-#             'image1': item.get('image', 'default_image.jpg'),
-#             'quantity': quantity,
-#             'total': item_total,
-#             'size': item.get('size', ''),
-#             'color': item.get('color', ''),
-#         })
-
-#     if request.method == "POST":
-#         full_name = request.POST.get("full_name", "").strip()
-#         email = request.POST.get("email", "").strip()
-#         phone_number = request.POST.get("phone_number", "").strip()
-#         house_society_name = request.POST.get("house_society_name", "").strip()
-#         landmark_area = request.POST.get("landmark_area", "").strip()
-#         city = request.POST.get("city", "").strip()
-#         state = request.POST.get("state", "").strip()
-#         pin_code = request.POST.get("pin_code", "").strip()
-
-#         # Validate form fields
-#         if not (full_name and email and phone_number and city and state and pin_code):
-#             messages.error(request, "Please fill in all required fields.")
-#             return redirect("checkout")
-
-#         if not cart_items:
-#             messages.error(request, "Your cart is empty.")
-#             return redirect("checkout")
-
-#         # Create Order
-#         order = Order.objects.create(
-#             user=request.user,
-#             full_name=full_name,
-#             email=email,
-#             phone_number=phone_number,
-#             house_society_name=house_society_name,
-#             landmark_area=landmark_area,
-#             city=city,
-#             state=state,
-#             pin_code=pin_code,
-#             total_price=total_price,
-#         )
-
-#         # Move cart items to OrderItem
-#         for item in cart_items:
-#             OrderItem.objects.create(
-#                 order=order,
-#                 name=item['name'],
-#                 size=item['size'],
-#                 color=item['color'],
-#                 quantity=item['quantity'],
-#                 price=item['price'],
-#             )
-
-#         # Redirect to PayPal Payment
-#         return redirect("paypal_payment", order_id=order.id)
-
-#     # Fetch categories
-#     cat = Category.objects.only("id", "name")
-
-#     return render(request, 'checkout.html', {
-#         'cat': cat,
-#         'cart_items': cart_items,
-#         'cart_count': len(cart_items),
-#         'total_price': total_price,
-#     })
-
-
-# # PayPal Payment View
-# def get_paypal_token():
-#     """Get OAuth token from PayPal."""
-#     auth = (PAYPAL_CLIENT_ID, PAYPAL_SECRET)
-#     headers = {"Content-Type": "application/x-www-form-urlencoded"}
-#     data = {"grant_type": "client_credentials"}
-
-#     response = requests.post(f"{PAYPAL_URL}/v1/oauth2/token", auth=auth, data=data, headers=headers)
-
-#     if response.status_code == 200:
-#         return response.json().get("access_token")
-    
-#     return None
-
-def paypal_payment(request, order_id):
-    order = get_object_or_404(Order, id=order_id)
-    paypal_token = get_paypal_token()
-
-    if not paypal_token:
-        messages.error(request, "PayPal authentication failed.")
-        return redirect("checkout")
-
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {paypal_token}"
-    }
-
-    data = {
-        "intent": "CAPTURE",
-        "purchase_units": [{
-            "amount": {
-                "currency_code": "USD",
-                "value": str(order.total_price)
-            }
-        }],
-        "application_context": {
-            "return_url": request.build_absolute_uri("/payment-success/"),
-            "cancel_url": request.build_absolute_uri("/payment-cancel/")
-        }
-    }
-
-    response = requests.post(f"{PAYPAL_URL}/v2/checkout/orders", json=data, headers=headers)
-    response_data = response.json()
-
-    if response.status_code == 201:
-        for link in response_data.get("links", []):
-            if link["rel"] == "approve":
-                return redirect(link["href"])
-
-    messages.error(request, "PayPal payment failed. Try again.")
-    return redirect("checkout")
-
-
-# Payment Cancel View
-def payment_cancel(request):
-    messages.error(request, "Payment was canceled.")
-    return redirect("checkout")
-
-@csrf_exempt
-def paymentrazor(request):
-    session_cart = request.session.get('cart', {})
-    
-    # Prepare cart items and calculate total price
-    cart_items = []
-    total_price = Decimal('0.00')
-    
     for cart_key, item in session_cart.items():
         try:
             price = Decimal(str(item.get('price', 0)))
@@ -960,12 +645,20 @@ def paymentrazor(request):
         city = request.POST.get("city")
         state = request.POST.get("state")
         pin_code = request.POST.get("pin_code")
-        
+
         if not cart_items:
             messages.error(request, "Your cart is empty.")
             return redirect("checkout")
-        
-        # Create Order
+
+        # ✅ Create Razorpay Order
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        razorpay_order = client.order.create({
+            'amount': int(total_price * 100),  # in paisa
+            'currency': 'INR',
+            'payment_capture': 1
+        })
+
+        # ✅ Save Order in database with Razorpay Order ID
         order = Order.objects.create(
             user=request.user,
             full_name=full_name,
@@ -977,22 +670,60 @@ def paymentrazor(request):
             state=state,
             pin_code=pin_code,
             total_price=total_price,
+            razorpay_order_id=razorpay_order['id']
         )
+
+        # ✅ Redirect to payment page with all necessary info
+        return render(request, 'payment.html', {
+            'order': order,
+            'order_id': order.id,  # Pass Django order ID
+            'razorpay_order_id': razorpay_order['id'],
+            'razorpay_key': settings.RAZORPAY_KEY_ID,
+            'amount': int(total_price * 100),
+        })
+
+    # Fetch categories
+    cat = Category.objects.only("id", "name")
+
+    return render(request, 'checkout.html', {
+        'cat': cat,
+        'cart_items': cart_items,
+        'cart_count': len(cart_items),
+        'total_price': total_price,
+    })
+
+
+@csrf_exempt
+def paymentrazor(request):
+    session_cart = request.session.get('cart', {})
+    
+    # Prepare cart items and calculate total price
+    cart_items = []
+    total_price = Decimal('0.00')
+    
+    for cart_key, item in session_cart.items():
+        try:
+            price = Decimal(str(item.get('price', 0)))
+            quantity = int(item.get('quantity', 0))
+        except (ValueError, TypeError):
+            price = Decimal('0.00')
+            quantity = 0
+
+        item_total = price * quantity
+        total_price += item_total
+
+        cart_items.append({
+            'cart_key': cart_key,
+            'name': item.get('name', 'Unknown Product'),
+            'price': price,
+            'image1': item.get('image', 'default_image.jpg'),
+            'quantity': quantity,
+            'total': item_total,
+            'size': item.get('size', ''),
+            'color': item.get('color', ''),
+        })
         
-        # Move cart items to OrderItem
-        for item in cart_items:
-            OrderItem.objects.create(
-                order=order,
-                name=item['name'],
-                size=item['size'],
-                color=item['color'],
-                quantity=item['quantity'],
-                price=item['price'],
-            )
-    
-    
     client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-    price = Order.objects.all()
     
     price=int(total_price*100) 
     
@@ -1006,18 +737,46 @@ def paymentrazor(request):
 
     return render(request, "payment.html", {"order_id": order["id"], "razorpay_key": settings.RAZORPAY_KEY_ID})
 
-# Payment Success View
 @csrf_exempt
-def payment_success(request):
-    request.session['cart'] = {}  # Clear cart after successful payment
-    return redirect("success")
+def payment_success(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return HttpResponse("Order not found", status=404)
+    print(order.id)
+    orders = order.id
 
-def success(request):
-    return render(request,'success.html')
+    cart = request.session.get('cart', {})
+    
+    for item in cart.values():
+        try:
+            price = Decimal(str(item.get('price', 0)))
+            quantity = int(item.get('quantity', 0))
+        except:
+            continue
 
-# @csrf_exempt
-# def payment_success_razor(request):
-#     if request.method == "POST":
-#         return JsonResponse({"message": "Payment successful!"})
-#     request.session['cart'] = {}
-#     return JsonResponse({"error": "Invalid request"}, status=400)
+        OrderItem.objects.create(
+            order=order,
+            number=orders,
+            name=item.get('name', ''),
+            size=item.get('size', ''),
+            color=item.get('color', ''),
+            quantity=quantity,
+            price=price
+        )
+
+    # Optional: Save Razorpay payment ID if needed
+    # payment_id = request.POST.get('razorpay_payment_id')
+    # if payment_id:
+    #     order.payment_id = payment_id 
+    #     order.save()
+
+    request.session['cart'] = {}
+    return redirect('success', order_id=order.id)
+
+
+def success(request, order_id):
+    order = Order.objects.get(id=order_id)
+    items = OrderItem.objects.filter(order=order)
+    return render(request, 'success.html', {'order': order, 'items': items})
+
